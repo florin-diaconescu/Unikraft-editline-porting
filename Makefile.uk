@@ -1,0 +1,100 @@
+#  SPDX-License-Identifier: BSD-3-Clause
+#
+#  editline Makefile.uk
+#
+#  Authors: Florin Diaconescu <florin.diaconescu@stud.acs.upb.ro>
+#
+#  Copyright (c) 2020, University Politehnica of Bucharest. All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
+#
+#  1. Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#  2. Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#  3. Neither the name of the copyright holder nor the names of its
+#     contributors may be used to endorse or promote products derived from
+#     this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+#  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
+#
+
+################################################################################
+# Library registration
+################################################################################
+$(eval $(call addlib_s,libeditline,$(CONFIG_LIBEDITLINE)))
+
+################################################################################
+# Original sources
+################################################################################
+LIBEDITLINE_VERSION = 1.17.1
+LIBEDITLINE_URL = https://github.com/troglobit/editline/releases/download/$(LIBEDITLINE_VERSION)/editline-$(LIBEDITLINE_VERSION).tar.gz
+LIBEDITLINE_SUBDIR = editline-$(LIBEDITLINE_VERSION)
+$(eval $(call fetch,libeditline,$(LIBEDITLINE_URL)))
+
+# LIBEDITLINE_PATCHDIR=$(LIBEDITLINE_BASE)/patches
+# $(eval $(call patch,libeditline,$(LIBEDITLINE_PATCHDIR),$(LIBEDITLINE_SUBDIR)))
+
+################################################################################
+# Helpers
+################################################################################
+LIBEDITLINE_EXTRACTED = $(LIBEDITLINE_ORIGIN)/editline-$(LIBEDITLINE_VERSION)
+
+################################################################################
+# Library includes
+################################################################################
+LIBEDITLINE_COMMON_INCLUDES-y += -I$(LIBEDITLINE_EXTRACTED)
+LIBEDITLINE_COMMON_INCLUDES-y += -I$(LIBEDITLINE_EXTRACTED)/include
+
+CINCLUDES-$(CONFIG_LIBEDITLINE)   += $(LIBEDITLINE_COMMON_INCLUDES-y)
+CXXINCLUDES-$(CONFIG_LIBEDITLINE) += $(LIBEDITLINE_COMMON_INCLUDES-y)
+
+LIBEDITLINE_CINCLUDES   += -I$(LIBEDITLINE_EXTRACTED)
+LIBEDITLINE_CXXINCLUDES += -I$(LIBEDITLINE_EXTRACTED)
+
+################################################################################
+# Global flags
+################################################################################
+# Supress flags
+LIBEDITLINE_CFLAGS-y    += $(LIBEDITLINE_SUPRESS_FLAGS)
+LIBEDITLINE_CXXFLAGS-y  += $(LIBEDITLINE_SUPRESS_FLAGS)
+
+# Preprocessing symbols
+LIBEDITLINE_DEFINES	+= -DHAVE_CONFIG_H
+LIBEDITLINE_CFLAGS-y	+= $(LIBEDITLINE_DEFINES)
+LIBEDITLINE_CXXFLAGS-y	+= $(LIBEDITLINE_DEFINES)
+
+################################################################################
+# editline code
+################################################################################
+LIBEDITLINE_SRCS-y += $(LIBEDITLINE_EXTRACTED)/src/sysunix.c
+LIBEDITLINE_SRCS-y += $(LIBEDITLINE_EXTRACTED)/src/editline.c
+LIBEDITLINE_SRCS-y += $(LIBEDITLINE_EXTRACTED)/src/complete.c
+
+################################################################################
+# editline prepare
+################################################################################
+# Run ./configure
+$(LIBEDITLINE_EXTRACTED)/config.status: $(LIBEDITLINE_BUILD)/.origin
+	$(call verbose_cmd,CONFIG,libeditline: $(notdir $@), \
+		cd $(LIBEDITLINE_EXTRACTED) && ./configure)
+
+LIBEDITLINE_PREPARED_DEPS = \
+	$(LIBEDITLINE_EXTRACTED)/config.status \
+
+$(LIBEDITLINE_BUILD)/.prepared: $(LIBEDITLINE_PREPARED_DEPS)
+
+UK_PREPARE += $(LIBEDITLINE_BUILD)/.prepared
